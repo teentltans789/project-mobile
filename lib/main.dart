@@ -16,8 +16,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber),
         useMaterial3: true,
       ),
-      home: const OnboardingScreen(), // เปลี่ยนจาก HomeScreen เป็น OnboardingScreen
+      home: const OnboardingScreen(), 
       debugShowCheckedModeBanner: false,
     );
   }
 }
+
+// 111111111111111111111111111111111111111111111111
