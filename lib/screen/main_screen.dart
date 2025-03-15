@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:project/screen/setting_screen.dart';
+import 'package:project/screen/timer_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'Addgoal.dart';
+import 'timer_screen.dart';  // นำเข้าไฟล์ TimerScreen
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -9,10 +12,10 @@ class MainScreen extends StatefulWidget {
   _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen>
-    with SingleTickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   bool _isExpanded = false;
+  bool isWatermarkVisible = false; // การแสดงลายน้ำ (เริ่มต้นไม่แสดง)
 
   @override
   void initState() {
@@ -20,6 +23,44 @@ class _MainScreenState extends State<MainScreen>
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
+    );
+    _checkFirstTime(); // ตรวจสอบการล็อกอินครั้งแรก
+  }
+
+  // ฟังก์ชันตรวจสอบการล็อกอินครั้งแรก
+  Future<void> _checkFirstTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool? isFirstTime = prefs.getBool('isFirstTime');
+    
+    // ถ้าไม่เคยล็อกอินหรือเป็นครั้งแรก ให้แสดงลายน้ำ
+    if (isFirstTime == null || isFirstTime) {
+      setState(() {
+        isWatermarkVisible = true; // แสดงลายน้ำ
+      });
+    }
+  }
+
+  // ฟังก์ชันที่ถูกเรียกเมื่อผู้ใช้เพิ่มเป้าหมาย
+  void _saveGoal(String title, String description, String time) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isFirstTime', false); // ตั้งค่าเป็นไม่ใช่ครั้งแรกแล้ว
+    setState(() {
+      isWatermarkVisible = false; // ซ่อนลายน้ำเมื่อเพิ่มเป้าหมาย
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Goal "$title" saved successfully at $time')),
+    );
+
+    // ลิงค์ไปยังหน้าจับเวลา
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TimerScreen(
+          goalTitle: title,  // ส่งชื่อเป้าหมาย
+          goalTime: time,    // ส่งเวลาที่กรอก
+        ),
+      ),
     );
   }
 
@@ -32,13 +73,6 @@ class _MainScreenState extends State<MainScreen>
         _animationController.reverse();
       }
     });
-  }
-
-  // Callback function to save the goal
-  void _saveGoal(String title, String description, String time) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Goal "$title" saved successfully at $time')),
-    );
   }
 
   void _showMessage(String message) {
@@ -55,6 +89,27 @@ class _MainScreenState extends State<MainScreen>
         backgroundColor: Colors.amber[700],
         foregroundColor: Colors.white,
       ),
+      
+      // แสดงลายน้ำถ้าผู้ใช้ล็อกอินครั้งแรก
+      body: Stack(
+        children: [
+          if (isWatermarkVisible)
+            Center(
+              child: Opacity(
+                opacity: 0.6,
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: const Text(
+                    "Start setting goals now!", // ข้อความลายน้ำ
+                    style: TextStyle(color: Color.fromARGB(255, 78, 76, 76), fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          // เนื้อหาหลักของหน้า
+        ],
+      ),
+      
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -66,13 +121,7 @@ class _MainScreenState extends State<MainScreen>
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    void _showMessage(String message) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(message)),
-                      );
-                    }
-
-                    return Addgoal(onSaveGoal: _saveGoal);
+                    return Addgoal(onSaveGoal: _saveGoal); // ส่งฟังก์ชัน _saveGoal ไป
                   },
                 );
               },
