@@ -3,7 +3,6 @@ import 'package:project/screen/setting_screen.dart';
 import 'package:project/screen/timer_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'Addgoal.dart';
-import 'timer_screen.dart';  // นำเข้าไฟล์ TimerScreen
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,6 +15,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   late AnimationController _animationController;
   bool _isExpanded = false;
   bool isWatermarkVisible = false; // การแสดงลายน้ำ (เริ่มต้นไม่แสดง)
+
+  // สร้าง list สำหรับเก็บ goal
+  List<Map<String, String>> goals = [];
 
   @override
   void initState() {
@@ -46,6 +48,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     await prefs.setBool('isFirstTime', false); // ตั้งค่าเป็นไม่ใช่ครั้งแรกแล้ว
     setState(() {
       isWatermarkVisible = false; // ซ่อนลายน้ำเมื่อเพิ่มเป้าหมาย
+      goals.add({
+        'title': title,
+        'description': description,
+        'time': time,
+      });
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -90,25 +97,23 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         foregroundColor: Colors.white,
       ),
       
-      // แสดงลายน้ำถ้าผู้ใช้ล็อกอินครั้งแรก
-      body: Stack(
-        children: [
-          if (isWatermarkVisible)
-            Center(
-              child: Opacity(
-                opacity: 0.6,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  child: const Text(
-                    "Start setting goals now!", // ข้อความลายน้ำ
-                    style: TextStyle(color: Color.fromARGB(255, 78, 76, 76), fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-          // เนื้อหาหลักของหน้า
-        ],
-      ),
+      body: goals.isEmpty
+           ? const Center(child: Text('No goals added yet!'))
+           : ListView.builder(
+               itemCount: goals.length,
+               itemBuilder: (context, index) {
+                 return Card(
+                   margin: const EdgeInsets.all(8),
+                   child: ListTile(
+                     title: Text(goals[index]['title']!),
+                     subtitle: Text(
+                       '${goals[index]['description']} \nTime: ${goals[index]['time']} hr',
+                     ),
+                     isThreeLine: true,
+                   ),
+                 );
+               },
+             ),
       
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
